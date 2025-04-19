@@ -8,6 +8,10 @@ from selenium.common.exceptions import TimeoutException
 import time
 import random
 
+# 配置文件路径
+CONFIG_FILE = "usernames.txt"
+MESSAGE = "这是自动发送的测试消息"
+
 options = webdriver.ChromeOptions()
 options.add_argument(r"--user-data-dir=C:\Users\admin\AppData\Local\Google\Chrome\User Data")
 options.add_argument("--disable-blink-features=AutomationControlled")
@@ -120,16 +124,40 @@ def send_dm(username, message):
         )
         print("✅ 消息确认已送达")
         
-        time.sleep(2)  # 保持会话
+        return True
         
     except Exception as e:
         print(f"❌ 错误: {str(e)}")
         driver.save_screenshot('error.png')
-    finally:
-        print('final')
-        if driver.service.process:
-            driver.quit()
-        #driver.quit()
+        return False
+  
 
-# 使用示例
-send_dm("yqtwwjm", "自动化测试消息")
+def batch_send():
+    # 读取配置文件
+    try:
+        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+            usernames = [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        print(f"❌ 配置文件 {CONFIG_FILE} 未找到")
+        return
+    
+    # 初始化浏览器（整个批量过程只启动一次）
+    driver = webdriver.Chrome(options=options)
+    
+    try:
+        for idx, username in enumerate(usernames, 1):
+            print(f"\n=== 正在发送第 {idx}/{len(usernames)} 个用户: {username} ===")
+            
+            # 执行发送
+            if send_dm(driver, username, MESSAGE):
+                # 随机等待（2-5秒）
+                wait_time = random.uniform(2, 5)
+                print(f"⌛ 等待 {wait_time:.1f} 秒...")
+                time.sleep(wait_time)
+                
+    finally:
+        driver.quit()
+        print("\n✅ 所有用户发送完成")
+
+if __name__ == "__main__":
+    batch_send()
